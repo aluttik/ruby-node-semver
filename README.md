@@ -24,6 +24,6 @@ rescue
 end
 
 versions = ['1.2.3', '1.2.4', '1.2.5', '1.2.6-pre.1', '2.0.1']
-max_satisfying(versions, '~1.2.3', loose=false, include_prerelease=true) == '1.2.6-pre.1'
-max_satisfying(versions, '~1.2.3', loose=false, include_prerelease=false) == '1.2.5'
+NodeSemver.max_satisfying(versions, '~1.2.3', loose=false, include_prerelease=true) == '1.2.6-pre.1'
+NodeSemver.max_satisfying(versions, '~1.2.3', loose=false, include_prerelease=false) == '1.2.5'
 ```
