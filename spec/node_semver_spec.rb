@@ -1,6 +1,6 @@
 require 'node_semver'
 
-describe(NodeSemver, '#test_comparators') do
+RSpec.describe(NodeSemver, '#test_comparators') do
   def self.run_test(range, expected)
     it "range=#{range.inspect}, loose=false" do
       expect(NodeSemver.to_comparators(range, false)).to(eq(expected))
@@ -62,7 +62,7 @@ describe(NodeSemver, '#test_comparators') do
   run_test('<*', [['<0.0.0']])
 end
 
-describe(NodeSemver, '#test_comparison') do
+RSpec.describe(NodeSemver, '#test_comparison') do
   def self.run_test(v0, v1, loose)
     it "v0=#{v0.inspect}, v1=#{v1.inspect}, loose=#{loose}" do
       expect(NodeSemver.gt(v0, v1, loose)).to(eq(true))
@@ -110,7 +110,7 @@ describe(NodeSemver, '#test_comparison') do
   run_test('1.2.3-r100', '1.2.3-R2', false)
 end
 
-describe(NodeSemver, '#test_equality') do
+RSpec.describe(NodeSemver, '#test_equality') do
   def self.run_test(v0, v1, loose)
     it "v0=#{v0.inspect}, v1=#{v1.inspect}, loose=#{loose}" do
       expect(NodeSemver.eq(v0, v1, loose)).to(eq(true))
@@ -164,7 +164,7 @@ describe(NodeSemver, '#test_equality') do
   run_test('  v1.2.3+build', '1.2.3+otherbuild', false)
 end
 
-describe(NodeSemver, '#test_for_4digit') do
+RSpec.describe(NodeSemver, '#test_for_4digit') do
   def self.run_test(version, major, minor, patch, prerelease, build, micro_versions)
     it "version=#{version.inspect}" do
       semver = NodeSemver.make_semver(version, true)
@@ -188,7 +188,7 @@ describe(NodeSemver, '#test_for_4digit') do
   run_test('4.1.3.2-pre.2+xxx', 4, 1, 3, ['pre'], ['xxx'], [2, 2])
 end
 
-describe(NodeSemver, '#test_increment_version') do
+RSpec.describe(NodeSemver, '#test_increment_version') do
   def self.run_test(version, release, loose, identifier, expected)
     it "version=#{version.inspect}, release=#{release.inspect}, loose=#{loose}, identifier=#{identifier.inspect}" do
       expect(NodeSemver.inc(version, release, loose, identifier)).to(eq(expected))
@@ -276,7 +276,7 @@ describe(NodeSemver, '#test_increment_version') do
   run_test('1.2.3-dev.bar', 'prerelease', false, 'dev', '1.2.3-dev.0')
 end
 
-describe(NodeSemver, '#test_invalid_version_number') do
+RSpec.describe(NodeSemver, '#test_invalid_version_number') do
   def self.run_test(version, loose, exception)
     it "version=#{version.inspect}, loose=#{loose} exception=#{exception.inspect}" do
       if exception.nil?
@@ -304,7 +304,7 @@ describe(NodeSemver, '#test_invalid_version_number') do
   run_test('X.2', true, ArgumentError)
 end
 
-describe(NodeSemver, '#test_negative_range') do
+RSpec.describe(NodeSemver, '#test_negative_range') do
   def self.run_test(range, version, loose)
     it "version=#{version.inspect}, range=#{range.inspect}, loose=#{loose}" do
       expect(NodeSemver.satisfies(version, range, loose)).to(eq(false))
@@ -382,7 +382,7 @@ describe(NodeSemver, '#test_negative_range') do
   run_test('^1.2.3', false, false)
 end
 
-describe(NodeSemver, '#test_loose_range') do
+RSpec.describe(NodeSemver, '#test_loose_range') do
   def self.run_test(loose_range, comparators)
     it "loose=#{loose_range.inspect} comparators=#{comparators.inspect}" do
       expect{NodeSemver.make_range(loose_range, false)}.to(raise_error(ArgumentError))
@@ -393,7 +393,7 @@ describe(NodeSemver, '#test_loose_range') do
   run_test('~1.02.03beta', '>=1.2.3-beta <1.3.0')
 end
 
-describe(NodeSemver, '#test_loose_version') do
+RSpec.describe(NodeSemver, '#test_loose_version') do
   def self.run_test(loose_version, strict_version)
     it "loose=#{loose_version.inspect} strict=#{strict_version.inspect}" do
       expect{NodeSemver.make_semver(loose_version, false)}.to(raise_error(ArgumentError))
@@ -410,7 +410,7 @@ describe(NodeSemver, '#test_loose_version') do
   run_test('1.2.3foo', '1.2.3-foo')
 end
 
-describe(NodeSemver, '#test_ltr') do
+RSpec.describe(NodeSemver, '#test_ltr') do
   def self.run_test(range, version, loose)
     it "range=#{range.inspect} version=#{version.inspect} loose=#{loose}" do
       expect(NodeSemver.ltr(version, range, loose)).to(eq(true))
@@ -476,7 +476,7 @@ describe(NodeSemver, '#test_ltr') do
   run_test('~v0.5.4-pre', '0.5.4-alpha', false)
 end
 
-describe(NodeSemver, '#test_max_satisfying')do
+RSpec.describe(NodeSemver, '#test_max_satisfying')do
   def self.run_test(versions, range, expected, loose, include_prerelease)
     it "versions=#{versions}, range=#{range.inspect}, loose=#{loose}, include_prerelease=#{include_prerelease}" do
       if expected.class == Class and expected <= Exception
@@ -501,7 +501,7 @@ describe(NodeSemver, '#test_max_satisfying')do
   run_test(["1.1.1", "1.2.0-pre", "1.2", "1.1.1-111", "1.1.1-21"], "<=1.2.0", "1.2", true, false)
 end
 
-describe(NodeSemver, '#test_min_satisfying') do
+RSpec.describe(NodeSemver, '#test_min_satisfying') do
   def self.run_test(versions, range, expected, loose, include_prerelease)
     it "versions=#{versions}, range=#{range.inspect}, loose=#{loose}, include_prerelease=#{include_prerelease}" do
       if expected.class == Class and expected <= Exception
@@ -517,7 +517,7 @@ describe(NodeSemver, '#test_min_satisfying') do
   run_test(['1.1.0', '1.2.0', '1.2.1', '1.3.0', '2.0.0b1', '2.0.0b2', '2.0.0b3', '2.0.0', '2.1.0'], '~2.0.0', '2.0.0', true, false)
 end
 
-describe(NodeSemver, '#test_sort') do
+RSpec.describe(NodeSemver, '#test_sort') do
   def self.run_test(sorted_versions)
     it "versions.length=#{sorted_versions.length}" do
       unsorted_versions = sorted_versions
@@ -582,7 +582,7 @@ describe(NodeSemver, '#test_sort') do
   ])
 end
 
-describe(NodeSemver, '#test_range') do
+RSpec.describe(NodeSemver, '#test_range') do
   def self.run_test(range, version, loose, include_prerelease)
     it "version=#{version.inspect}, range=#{range.inspect}, loose=#{loose}, include_prerelease=#{include_prerelease}" do
       expect(NodeSemver.satisfies(version, range, loose, include_prerelease)).to(eq(true))
@@ -694,7 +694,7 @@ describe(NodeSemver, '#test_range') do
   run_test('<=7.x', '7.9.9', false, false)
 end
 
-describe(NodeSemver, '#test_valid_range') do
+RSpec.describe(NodeSemver, '#test_valid_range') do
   def self.run_test(range, loose, expected)
     it "range=#{range.inspect}, loose=#{loose}" do
       expect(NodeSemver.valid_range(range, loose)).to(eq(expected))

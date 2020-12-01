@@ -1,3 +1,5 @@
+require "node_semver/version"
+
 module NodeSemver
   extend self
 
