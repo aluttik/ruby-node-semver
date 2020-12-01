@@ -1,7 +1,7 @@
 require_relative 'lib/node_semver/version'
 
 Gem::Specification.new do |spec|
-  spec.name          = "ruby_node_semver"
+  spec.name          = "ruby-node-semver"
   spec.version       = NodeSemver::VERSION
   spec.authors       = ["Arie van Luttikhuizen"]
   spec.email         = ["aluttik@gmail.com"]
