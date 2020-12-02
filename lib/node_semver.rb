@@ -117,7 +117,7 @@ module NodeSemver
 
   def parse(version, loose)
     r = get_regex(loose ? :loose : :full)
-    m = r.search(version)
+    m = r.match(version)
     m ? make_semver(version, loose) : nil
   end
 
