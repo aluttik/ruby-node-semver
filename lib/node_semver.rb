@@ -1,3 +1,5 @@
+require "node_semver/version"
+
 module NodeSemver
   extend self
 
@@ -115,7 +117,7 @@ module NodeSemver
 
   def parse(version, loose)
     r = get_regex(loose ? :loose : :full)
-    m = r.search(version)
+    m = r.match(version)
     m ? make_semver(version, loose) : nil
   end
 
@@ -172,7 +174,7 @@ module NodeSemver
         if m[3].nil?
           # this is not same behaviour  node's semver (see: https://github.com/podhmo/python-semver/issues/15)
           @prerelease = v[m.end(0)..v.length].split('.').select{|x| !x.empty?}
-          if !@prerelease.empty? and NodeSemver.isnumeric?(@prerelease[0])
+          if !@prerelease.empty? && NodeSemver.isnumeric?(@prerelease[0])
             @patch = @prerelease[0].to_i
             @prerelease = @prerelease[1..prerelease.length]
           end
@@ -444,18 +446,29 @@ module NodeSemver
     prerelease.map {|e| (e.instance_of? Fixnum) ? ['', e] : [e]}
   end
 
-  {'loose'=>true, 'full'=>false}.each do |k, loose|
-    define_method(k + '_key_function') do |version|
-      v = make_semver(version, loose)
-      key = [v.major, v.minor, v.patch]
-      if !v.micro_versions.nil? and !v.micro_versions.empty?
-        key = key + v.micro_versions
-      end
-      if !v.prerelease.nil? and !v.prerelease.empty?
-        key = key + [0] + _prerelease_key(v.prerelease)
-      else
-        key = key + [1]  # NOT having a prerelease is > having one
-      end
+  def loose_key_function(version)
+    v = make_semver(version, true)
+    key = [v.major, v.minor, v.patch]
+    if !v.micro_versions.nil? and !v.micro_versions.empty?
+      key = key + v.micro_versions
+    end
+    if !v.prerelease.nil? and !v.prerelease.empty?
+      key = key + [0] + _prerelease_key(v.prerelease)
+    else
+      key = key + [1]  # NOT having a prerelease is > having one
+    end
+  end
+
+  def full_key_function(version)
+    v = make_semver(version, false)
+    key = [v.major, v.minor, v.patch]
+    if !v.micro_versions.nil? and !v.micro_versions.empty?
+      key = key + v.micro_versions
+    end
+    if !v.prerelease.nil? and !v.prerelease.empty?
+      key = key + [0] + _prerelease_key(v.prerelease)
+    else
+      key = key + [1]  # NOT having a prerelease is > having one
     end
   end
 
@@ -856,8 +869,24 @@ module NodeSemver
     range.test(version, include_prerelease)
   end
 
-  {'min'=>1, 'max'=>-1}.each do |k, direction|
-    define_method(k + '_satisfying') do |versions, range, loose=false, include_prerelease=false|
+  def max_satisfying(versions, range, loose=false, include_prerelease=false)
+    begin
+      range_obj = make_range(range, loose)
+    rescue ArgumentError
+      return nil
+    end
+
+    a, b = nil, nil
+    for v in versions do
+      if range_obj.test(v, include_prerelease) and (a.nil? or b.compare(v) == -1)
+        a = v
+        b = make_semver(a, loose)
+      end
+    end
+    a
+  end
+
+  def min_satisfying(versions, range, loose=false, include_prerelease=false)
       begin
         range_obj = make_range(range, loose)
       rescue ArgumentError
@@ -866,13 +895,12 @@ module NodeSemver
 
       a, b = nil, nil
       for v in versions do
-        if range_obj.test(v, include_prerelease) and (a.nil? or b.compare(v) == direction)
+        if range_obj.test(v, include_prerelease) and (a.nil? or b.compare(v) == 1)
           a = v
           b = make_semver(a, loose)
         end
       end
       a
-    end
   end
 
   def valid_range(range, loose)
@@ -883,61 +911,91 @@ module NodeSemver
     end
   end
 
-  #  Determine if version is less or greater than all the versions possible in the range
-  {'ltr'=>'<', 'gtr'=>'>'}.each do |method_name, operator|
-    define_method method_name do |version, range, loose|
-      version = make_semver(version, loose)
-      range = make_range(range, loose)
-  
-      if operator == '>'
-        alias gtfn gt
-        alias ltefn lte
-        alias ltfn lt
-        comp = '>'
-        ecomp = '>='
-      elsif operator == '<'
-        alias gtfn lt
-        alias ltefn gte
-        alias ltfn gt
-        comp = '<'
-        ecomp = '<='
-      else
-        raise ArgumentError.new("Must provide a operator val of '<' or '>'")
-      end
-  
-      #  If it satisifes the range it is not outside
-      if satisfies(version, range, loose)
-        return false
-      end
-  
-      #  From now on, variable terms are as if we're in "gtr" mode.
-      #  but note that everything is flipped for the "ltr" function.
-      for comparators in range.set do
-        high = nil
-        low = nil
-        for comparator in comparators do
-          high = (high or comparator)
-          low = (low or comparator)
-          if gtfn(comparator.semver, high.semver, loose)
-            high = comparator
-          elsif ltfn(comparator.semver, low.semver, loose)
-            low = comparator
-          end
+  def ltr(version, range, loose)
+    version = make_semver(version, loose)
+    range = make_range(range, loose)
+
+    alias gtfn lt
+    alias ltefn gte
+    alias ltfn gt
+    comp = '<'
+    ecomp = '<='
+
+    #  If it satisifes the range it is not outside
+    if satisfies(version, range, loose)
+      return false
+    end
+
+    #  From now on, variable terms are as if we're in "gtr" mode.
+    #  but note that everything is flipped for the "ltr" function.
+    for comparators in range.set do
+      high = nil
+      low = nil
+      for comparator in comparators do
+        high = (high or comparator)
+        low = (low or comparator)
+        if gtfn(comparator.semver, high.semver, loose)
+          high = comparator
+        elsif ltfn(comparator.semver, low.semver, loose)
+          low = comparator
         end
       end
-  
-      #  If the edge version comparator has a operator then our version isn't outside it
-      if high.operator == comp or high.operator == ecomp
-        false
-      #  If the lowest version comparator has an operator and our version is less than it then it isn't higher than the range
-      elsif (not low.operator or low.operator == comp) and ltefn(version, low.semver, loose)
-        false
-      elsif low.operator == ecomp and ltfn(version, low.semver, loose)
-        false
-      else
-        true
-      end
+    end
+
+    #  If the edge version comparator has a operator then our version isn't outside it
+    if high.operator == comp or high.operator == ecomp
+      false
+    #  If the lowest version comparator has an operator and our version is less than it then it isn't higher than the range
+    elsif (not low.operator or low.operator == comp) and ltefn(version, low.semver, loose)
+      false
+    elsif low.operator == ecomp and ltfn(version, low.semver, loose)
+      false
+    else
+      true
     end
   end
 
+  def gtr
+    version = make_semver(version, loose)
+    range = make_range(range, loose)
+
+    alias gtfn gt
+    alias ltefn lte
+    alias ltfn lt
+    comp = '>'
+    ecomp = '>='
+
+    #  If it satisifes the range it is not outside
+    if satisfies(version, range, loose)
+      return false
+    end
+
+    #  From now on, variable terms are as if we're in "gtr" mode.
+    #  but note that everything is flipped for the "ltr" function.
+    for comparators in range.set do
+      high = nil
+      low = nil
+      for comparator in comparators do
+        high = (high or comparator)
+        low = (low or comparator)
+        if gtfn(comparator.semver, high.semver, loose)
+          high = comparator
+        elsif ltfn(comparator.semver, low.semver, loose)
+          low = comparator
+        end
+      end
+    end
+
+    #  If the edge version comparator has a operator then our version isn't outside it
+    if high.operator == comp or high.operator == ecomp
+      false
+    #  If the lowest version comparator has an operator and our version is less than it then it isn't higher than the range
+    elsif (not low.operator or low.operator == comp) and ltefn(version, low.semver, loose)
+      false
+    elsif low.operator == ecomp and ltfn(version, low.semver, loose)
+      false
+    else
+      true
+    end
+  end
 end
